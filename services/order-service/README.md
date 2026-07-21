@@ -1,29 +1,30 @@
 # Order Service
 
-The Order Service is responsible for creating customer orders and publishing order events to Kafka.
+The Order Service is responsible for creating customer orders, persisting them in PostgreSQL, and initiating the event-driven workflow by publishing order events to Apache Kafka.
 
-It is the entry point of the event-driven workflow.
+It acts as the entry point for the order lifecycle in the e-commerce platform.
 
 ---
 
 ## Responsibilities
 
-- Create new customer orders
-- Persist orders in PostgreSQL
-- Publish `OrderCreated` events to Kafka
-- Maintain order lifecycle
+* Create new customer orders
+* Persist orders in PostgreSQL
+* Publish `OrderCreated` events to Kafka
+* Consume payment status events
+* Maintain the order lifecycle
 
 ---
 
 ## Tech Stack
 
-- Python 3.12
-- FastAPI
-- SQLAlchemy
-- PostgreSQL
-- Apache Kafka
-- Confluent Kafka Python Client
-- Docker
+* Python 3.12
+* FastAPI
+* SQLAlchemy
+* PostgreSQL
+* Apache Kafka
+* Confluent Kafka Python Client
+* Docker
 
 ---
 
@@ -47,6 +48,8 @@ Example Request
     "unit_price": 3000
 }
 ```
+
+> **Note:** Currently, `unit_price` is accepted in the request for simplicity. In a production system, it should be retrieved from the Product Service.
 
 Example Response
 
@@ -73,17 +76,17 @@ Table
 orders
 ```
 
-Stores
+Stores:
 
-- Order ID
-- Customer ID
-- Product ID
-- Quantity
-- Unit Price
-- Total Amount
-- Order Status
-- Created Time
-- Updated Time
+* Order ID
+* Customer ID
+* Product ID
+* Quantity
+* Unit Price
+* Total Amount
+* Order Status
+* Created Timestamp
+* Updated Timestamp
 
 ---
 
@@ -91,13 +94,13 @@ Stores
 
 ### Produces
 
-Topic
+**Topic**
 
 ```
 orders
 ```
 
-Event
+**Event**
 
 ```json
 {
@@ -110,6 +113,18 @@ Event
 }
 ```
 
+### Consumes
+
+**Topic**
+
+```
+payment
+```
+
+Current event handled:
+
+* `PaymentSucceeded`
+
 ---
 
 ## Project Structure
@@ -119,6 +134,7 @@ app/
 │
 ├── api/
 ├── config/
+├── core/
 ├── db/
 ├── kafka/
 ├── models/
@@ -132,16 +148,12 @@ app/
 
 ## Run
 
-```
+```bash
 uv run uvicorn app.main:app --reload --port 8001
 ```
 
-Swagger
+Swagger UI
 
 ```
 http://localhost:8001/docs
 ```
-
----
-
-

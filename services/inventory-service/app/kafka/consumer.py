@@ -68,6 +68,7 @@ def consume_orders():
                     order_id=event["order_id"],
                     customer_id=event["customer_id"],
                     product_id=event["product_id"],
+                    total_amount= event["total_amount"],
                     reason="Insufficient Stock"
                 )
 
@@ -90,7 +91,8 @@ def consume_orders():
                 order_id=event["order_id"],
                 customer_id=event["customer_id"],
                 product_id=event["product_id"],
-                quantity=quantity
+                quantity=quantity,
+                total_amount= event["total_amount"]
             )
 
             publish(

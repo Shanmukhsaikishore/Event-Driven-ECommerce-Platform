@@ -24,3 +24,26 @@ class OrderRepository:
         db.refresh(db_order)
 
         return db_order
+    
+    def get_by_order_id(self, db: Session, order_id: str):
+
+        return (
+            db.query(Order)
+            .filter(Order.order_id == order_id)
+            .first()
+        )
+    
+    def update_status(
+        self,
+        db: Session,
+        order: Order,
+        status: str,
+    ):
+
+        order.status = status
+
+        db.commit()
+
+        db.refresh(order)
+
+        return order

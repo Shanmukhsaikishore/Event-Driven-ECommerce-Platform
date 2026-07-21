@@ -8,6 +8,7 @@ class InventoryReservedEvent(BaseModel):
     product_id: int
     customer_id: int
     quantity: int
+    total_amount: int
 
 
 class InventoryFailedEvent(BaseModel):
@@ -16,4 +17,5 @@ class InventoryFailedEvent(BaseModel):
     order_id: str
     product_id: int
     customer_id: int
+    total_amount: int 
     reason: str

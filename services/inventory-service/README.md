@@ -2,29 +2,29 @@
 
 The Inventory Service is responsible for validating product stock and reserving inventory after an order is created.
 
-It consumes events from Kafka and publishes inventory status events.
+It consumes order events from Apache Kafka, updates inventory records, and publishes inventory status events.
 
 ---
 
 ## Responsibilities
 
-- Consume `OrderCreated`
-- Validate stock availability
-- Reserve inventory
-- Publish inventory events
-- Maintain inventory records
+* Consume `OrderCreated` events
+* Validate product stock availability
+* Reserve inventory
+* Publish inventory status events
+* Maintain inventory records
 
 ---
 
 ## Tech Stack
 
-- Python 3.12
-- FastAPI
-- SQLAlchemy
-- PostgreSQL
-- Apache Kafka
-- Confluent Kafka Python Client
-- Docker
+* Python 3.12
+* FastAPI
+* SQLAlchemy
+* PostgreSQL
+* Apache Kafka
+* Confluent Kafka Python Client
+* Docker
 
 ---
 
@@ -32,13 +32,13 @@ It consumes events from Kafka and publishes inventory status events.
 
 ### Consumes
 
-Topic
+**Topic**
 
-```
+```text
 orders
 ```
 
-Event
+**Event**
 
 ```json
 {
@@ -55,13 +55,13 @@ Event
 
 ### Produces
 
-Topic
+**Topic**
 
-```
+```text
 inventory
 ```
 
-Success Event
+**Success Event**
 
 ```json
 {
@@ -74,12 +74,15 @@ Success Event
 }
 ```
 
-Failure Event
+**Failure Event**
 
 ```json
 {
     "event_type": "InventoryFailed",
     "order_id": "...",
+    "product_id": 2,
+    "customer_id": 1,
+    "total_amount": 9000,
     "reason": "Insufficient stock"
 }
 ```
@@ -90,25 +93,26 @@ Failure Event
 
 Table
 
-```
+```text
 inventory
 ```
 
-Stores
+Stores:
 
-- Product ID
-- Product Name
-- Available Quantity
+* Product ID
+* Product Name
+* Available Quantity
+* Reserved Quantity
 
 ---
 
 ## Processing Flow
 
-```
+```text
 OrderCreated
       │
       ▼
-Check Inventory
+Validate Stock
       │
  ┌────┴────┐
  │         │
@@ -116,7 +120,7 @@ Check Inventory
 Enough     Not Enough
  │          │
  ▼          ▼
-Reserve     Publish Failed
+Reserve     Publish InventoryFailed
  │
  ▼
 Publish InventoryReserved
@@ -126,13 +130,13 @@ Publish InventoryReserved
 
 ## Project Structure
 
-```
+```text
 app/
 │
 ├── config/
-├── consumers/
 ├── core/
 ├── db/
+├── events/
 ├── kafka/
 ├── models/
 ├── repositories/
@@ -145,15 +149,12 @@ app/
 
 ## Run
 
-```
+```bash
 uv run uvicorn app.main:app --reload --port 8002
 ```
 
-Swagger
+Swagger UI
 
-```
+```text
 http://localhost:8002/docs
 ```
-
----
-

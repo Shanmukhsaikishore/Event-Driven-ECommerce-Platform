@@ -1,8 +1,10 @@
 from app.config.settings import settings
 
 KAFKA_BOOTSTRAP_SERVERS = settings.kafka_bootstrap_servers
-KAFKA_ORDER_TOPIC = "orders"
 
 PAYMENT_TOPIC = "payment"
 
-ORDER_CONSUMER_GROUP = "order-group"
+INVENTORY_TOPIC = "inventory"
+
+PAYMENT_CONSUMER_GROUP = "payment-group"
+
