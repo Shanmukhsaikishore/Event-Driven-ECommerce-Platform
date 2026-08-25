@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 
 from app.models.product import Product
 from app.schemas.product import ProductCreate,ProductUpdate
+from app.models.product import Product
 
 
 class ProductRepository:
@@ -19,7 +20,6 @@ class ProductRepository:
         db.refresh(new_product)
 
         return new_product
-    from app.models.product import Product
 
 
     @staticmethod
@@ -50,6 +50,8 @@ class ProductRepository:
         db.refresh(product)
 
         return product
+    
+
     @staticmethod
     def delete(
         db: Session,
@@ -57,3 +59,11 @@ class ProductRepository:
     ) -> None:
         db.delete(product)
         db.commit()
+    
+    @staticmethod
+    def get_product_for_order(db: Session, product_id: int) -> Product | None:
+        return (
+            db.query(Product)
+            .filter(Product.id == product_id)
+            .first()
+        )

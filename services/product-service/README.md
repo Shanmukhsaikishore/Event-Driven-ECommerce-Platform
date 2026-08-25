@@ -4,7 +4,7 @@
 
 The Product Service is responsible for managing the product catalog in the Event-Driven E-Commerce Platform.
 
-It provides REST APIs for creating, retrieving, updating, and deleting products. Since product browsing is a read-heavy operation and does not require asynchronous communication, this service communicates synchronously using HTTP APIs in Version 1.
+It provides REST APIs for creating, retrieving, updating, and deleting products. Product browsing and product lookup remain synchronous operations through HTTP APIs in Version 2.
 
 ---
 
@@ -19,7 +19,7 @@ The Product Service is responsible for:
 - Retrieving product catalog
 - Providing product information to other services through REST APIs
 
-This service **does not** manage inventory, orders, payments, or shipments.
+This service **does not** manage inventory, orders, payments, shipments, or notifications.
 
 ---
 
@@ -27,11 +27,12 @@ This service **does not** manage inventory, orders, payments, or shipments.
 
 Kafka is used when business events need to be shared asynchronously between multiple independent services.
 
-In Version 1:
+The Product Service currently does not require Kafka because:
 
-- Product browsing is synchronous.
-- Other services query product information directly through REST APIs.
-- Product updates do not currently require event propagation.
+- Product browsing is synchronous
+- Product information is retrieved through REST APIs
+- The Order Service retrieves product information directly when creating an order
+- Product updates do not currently require event propagation
 
 Kafka integration can be introduced in future versions if product updates need to notify other services.
 
@@ -39,7 +40,7 @@ Kafka integration can be introduced in future versions if product updates need t
 
 ## Architecture
 
-```
+~~~text
 Client
    │
    ▼
@@ -59,13 +60,26 @@ SQLAlchemy ORM
    │
    ▼
 PostgreSQL
-```
+~~~
+
+The Order Service communicates with the Product Service through an internal HTTP endpoint:
+
+~~~text
+Order Service
+      │
+      │ HTTP
+      ▼
+Product Service
+      │
+      ▼
+Product Database
+~~~
 
 ---
 
 ## Project Structure
 
-```
+~~~text
 product-service/
 │
 ├── app/
@@ -82,7 +96,7 @@ product-service/
 ├── README.md
 ├── pyproject.toml
 └── .env
-```
+~~~
 
 ---
 
@@ -121,6 +135,9 @@ product-service/
 | GET | /products/{id} | Get Product by ID |
 | PUT | /products/{id} | Update Product |
 | DELETE | /products/{id} | Delete Product |
+| GET | /internal/products/{id} | Internal product lookup |
+
+The internal product endpoint is used by the Order Service to retrieve product information and the current product price when creating an order.
 
 ---
 
@@ -128,33 +145,33 @@ product-service/
 
 Start PostgreSQL:
 
-```bash
+~~~bash
 docker compose up -d
-```
+~~~
 
 Activate virtual environment:
 
-```bash
+~~~bash
 .venv\Scripts\activate
-```
+~~~
 
 Install dependencies:
 
-```bash
+~~~bash
 uv sync
-```
+~~~
 
 Run the service:
 
-```bash
-uv run uvicorn app.main:app --reload
-```
+~~~bash
+uv run uvicorn app.main:app --reload --port 8005
+~~~
 
 Swagger UI:
 
-```
-http://localhost:8000/docs
-```
+~~~text
+http://localhost:8005/docs
+~~~
 
 ---
 
@@ -167,8 +184,7 @@ http://localhost:8000/docs
 - SQLAlchemy ORM
 - RESTful API Design
 - PostgreSQL as the source of truth
-
-
+- Synchronous HTTP communication for product lookup
 
 ---
 
@@ -176,12 +192,32 @@ http://localhost:8000/docs
 
 The Product Service owns the product catalog.
 
-It supplies product information to the Order Service through REST APIs.
+It supplies product information and pricing to the Order Service through REST APIs.
 
-Business events such as Order Created, Payment Completed, Inventory Updated, Shipment Created, and Notification Sent are handled by other services through Apache Kafka.
+The Order Service uses this information when creating an order and calculating the order total.
+
+The Product Service remains independent from the asynchronous order-processing workflow handled by Apache Kafka.
+
+The overall event-driven workflow is handled by the respective services:
+
+~~~text
+OrderCreated
+     │
+     ▼
+InventoryReserved
+     │
+     ▼
+PaymentSucceeded
+     │
+     ▼
+ShipmentCreated
+     │
+     ▼
+Notification
+~~~
 
 ---
 
 ## Version
 
-Current Version: **v1.0.0**
+Current Version: **v2.0.0**

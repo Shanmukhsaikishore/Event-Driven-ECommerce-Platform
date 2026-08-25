@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     database_user: str
     database_password: str
     kafka_bootstrap_servers: str
+    PRODUCT_SERVICE_URL: str
 
     model_config = SettingsConfigDict(env_file=".env")
 

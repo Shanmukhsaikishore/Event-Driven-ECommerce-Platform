@@ -13,3 +13,5 @@ dependencies = [
     "sqlalchemy>=2.0.51",
     "uvicorn>=0.51.0",
 ]
+[project.scripts]
+start = "uvicorn app.main:app --host 0.0.0.0 --port 8003"

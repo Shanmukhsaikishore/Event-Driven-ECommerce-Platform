@@ -18,8 +18,9 @@ service = OrderService()
     response_model=OrderResponse,
     status_code=201
 )
-def create_order(
+async def create_order(
     order: OrderCreate,
     db: Session = Depends(get_db)
 ):
-    return service.create_order(db, order)
+    order= await service.create_order(db, order)
+    return order

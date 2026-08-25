@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from sqlalchemy import text
 
 from app.api.product_routes import router as product_router
+from app.api.internal_routes import router as internal_router
 from app.config.settings import settings
 from app.db.database import create_tables, engine
 
@@ -21,7 +22,7 @@ app = FastAPI(
 )
 
 app.include_router(product_router)
-
+app.include_router(internal_router)
 
 @app.get("/")
 def health_check():

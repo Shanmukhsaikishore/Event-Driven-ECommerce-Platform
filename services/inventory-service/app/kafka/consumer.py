@@ -1,22 +1,16 @@
 import json
 
-from app.db.database import SessionLocal
-from app.repositories.inventory_repository import InventoryRepository
-from app.events.inventory_events import (
-    InventoryReservedEvent,
-    InventoryFailedEvent,
-)
-from app.kafka.config import KAFKA_INVENTORY_TOPIC
-from app.kafka.producer import publish
-
 from confluent_kafka import Consumer
-from app.core.logger import logger
 
+from app.core.logger import logger
+from app.db.database import SessionLocal
 from app.kafka.config import (
     GROUP_ID,
     KAFKA_BOOTSTRAP_SERVERS,
     KAFKA_ORDER_TOPIC,
 )
+from app.events.inventory_events import OrderCreatedEvent
+from app.services.inventory_service import InventoryService
 
 
 consumer = Consumer(
@@ -24,88 +18,87 @@ consumer = Consumer(
         "bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS,
         "group.id": GROUP_ID,
         "auto.offset.reset": "earliest",
+        "enable.auto.commit": False
     }
 )
 
 consumer.subscribe([KAFKA_ORDER_TOPIC])
 
+inventory_service = InventoryService()
+
 
 def consume_orders():
+
     logger.info("Inventory Consumer Started...")
 
     while True:
+
         msg = consumer.poll(1.0)
 
         if msg is None:
             continue
 
         if msg.error():
-            print(msg.error())
+            logger.error(msg.error())
             continue
 
-        event = json.loads(msg.value().decode("utf-8"))
+        event_data = json.loads(
+            msg.value().decode("utf-8")
+        )
 
-        logger.info(f"Received Event: {event}")
+
+        event = OrderCreatedEvent(**event_data)
+
+        logger.info(
+            f"Received OrderCreated for Order {event.order_id}"
+        )
 
         db = SessionLocal()
 
         try:
-            repository = InventoryRepository()
+            event_type=event.event_type
 
-            inventory = repository.get_by_product_id(
-                db=db,
-                product_id=event["product_id"]
-            )
+            if event_type=="OrderCreated":
 
-            if inventory is None:
-                print(f"Product {event['product_id']} not found in inventory.")
-                continue
-
-            quantity = event["quantity"]
-
-            if inventory.available_quantity < quantity:
-                event = InventoryFailedEvent(
-                    order_id=event["order_id"],
-                    customer_id=event["customer_id"],
-                    product_id=event["product_id"],
-                    total_amount= event["total_amount"],
-                    reason="Insufficient Stock"
+                inventory_service.process_order(
+                    db=db,
+                    event_id=event.event_id,
+                    event_type=event.event_type,
+                    order_id=event.order_id,
+                    customer_id=event.customer_id,
+                    product_id=event.product_id,
+                    quantity=event.quantity,
+                    total_amount=event.total_amount,
                 )
 
-                publish(
-                    KAFKA_INVENTORY_TOPIC,
-                    event.model_dump()
+                logger.info(
+                    f"Processed OrderCreated for "
+                    f"Order {event.order_id}"
                 )
-                logger.info("InventoryFailed event published")
+            else:
+                logger.warning(
+                    f"Unknown event type: {event_type}"
+                )
 
-
+                # Do not commit unknown events yet.
                 continue
 
-            repository.reserve_stock(
-                db=db,
-                inventory=inventory,
-                quantity=quantity
+            consumer.commit(
+                message=msg,
+                asynchronous=False,
             )
 
-            event = InventoryReservedEvent(
-                order_id=event["order_id"],
-                customer_id=event["customer_id"],
-                product_id=event["product_id"],
-                quantity=quantity,
-                total_amount= event["total_amount"]
+            logger.info(
+                f"Kafka offset committed for "
+                f"{event_type} "
+                f"event_id={event.event_id}"
             )
 
-            publish(
-                KAFKA_INVENTORY_TOPIC,
-                event.model_dump()
-            )
-
-            logger.info("InventoryReserved event published")
 
         except Exception:
-            logger.exception("Inventory consumer failed")
+            logger.exception(
+                "Inventory processing failed"
+            )
 
         finally:
             db.close()
-
-        

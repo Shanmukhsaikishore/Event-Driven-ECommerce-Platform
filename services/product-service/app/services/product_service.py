@@ -79,3 +79,21 @@ class ProductService:
             db,
             product
         )
+
+    @staticmethod
+    def get_product_for_order(
+        db: Session,
+        product_id: int
+    ):
+        product = ProductRepository.get_product_for_order(
+            db,
+            product_id
+        )
+
+        if product is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Product not found"
+            )
+
+        return product

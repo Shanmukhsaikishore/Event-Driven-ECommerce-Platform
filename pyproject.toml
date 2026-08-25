@@ -13,4 +13,5 @@ dependencies = [
 members = [
     "services/product-service",
     "services/payment-service",
+    "services/api-gateway",
 ]

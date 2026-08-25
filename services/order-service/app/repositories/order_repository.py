@@ -1,30 +1,22 @@
 from sqlalchemy.orm import Session
 
 from app.models.order import Order
-from app.schemas.order import OrderCreate
 
 
 class OrderRepository:
 
-    def create(self, db: Session, order: OrderCreate) -> Order:
+    def create(
+        self,
+        db: Session,
+        order: Order,
+    ) -> Order:
 
-        total_amount = order.quantity * order.unit_price
-
-        db_order = Order(
-            customer_id=order.customer_id,
-            product_id=order.product_id,
-            quantity=order.quantity,
-            unit_price=order.unit_price,
-            total_amount=total_amount,
-            status="PENDING_PAYMENT"
-        )
-
-        db.add(db_order)
+        db.add(order)
         db.commit()
-        db.refresh(db_order)
+        db.refresh(order)
 
-        return db_order
-    
+        return order
+
     def get_by_order_id(self, db: Session, order_id: str):
 
         return (
@@ -32,7 +24,7 @@ class OrderRepository:
             .filter(Order.order_id == order_id)
             .first()
         )
-    
+
     def update_status(
         self,
         db: Session,
@@ -42,8 +34,7 @@ class OrderRepository:
 
         order.status = status
 
-        db.commit()
-
+        db.flush()
         db.refresh(order)
 
         return order
